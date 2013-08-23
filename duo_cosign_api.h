@@ -85,6 +85,11 @@ void	dc_param_list_free( dc_param_t ** );
 #define DC_PARAM_KEY_USERID		"user_id"
 #define DC_PARAM_KEY_VALIDSECS		"valid_secs"
 
+#define DC_PARAMS_ADD1(p1, k1, v1) \
+	DC_PARAMS_PUSH_STR((p1), DC_PARAM_KEY_##k1, (v1)) 
+#define DC_PARAMS_ADD(p1, k1, v1) \
+	DC_PARAMS_ADD1((p1), k1, (v1))
+
 struct duo_cosign_api {
     const char		*url_ref;
     dc_url_ref_id_t	url_ref_id;
