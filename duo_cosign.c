@@ -21,16 +21,11 @@
 extern int		errno;
 
     static char *
-dc_get_cfg_path( int ac, char *av[] )
+dc_get_cfg_path( void )
 {
     char	*path = NULL;
 
-    if ( ac > 1 ) {
-	path = av[ ac - 1 ];
-    } else {
-	path = getenv( DC_CFG_PATH_ENV_NAME );
-    }
-
+    path = getenv( DC_CFG_PATH_ENV_NAME );
     if ( path == NULL ) {
 	path = DC_CFG_PATH_DEFAULT;
     }
@@ -83,7 +78,7 @@ main( int ac, char *av[] )
     char		*device = NULL;
     int			status;
 
-    cfg_path = dc_get_cfg_path( ac, av );
+    cfg_path = dc_get_cfg_path();
 
     status = dc_cfg_read( cfg_path, &cfg_list );
     if ( status < 0 ) {
