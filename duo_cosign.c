@@ -38,6 +38,33 @@ dc_get_cfg_path( int ac, char *av[] )
     return( path );
 }
 
+    static char *
+dc_read_input_line( void )
+{
+    char		buf[ 512 ];
+    char		*line;
+    int			len;
+
+    if ( fgets( buf, sizeof( buf ), stdin ) == NULL ) {
+	fprintf( stderr, "fgets failed: %s\n", strerror( errno ));
+	exit( 2 );
+    }
+
+    len = strlen( buf );
+    if ( buf[ len - 1 ] != '\n' ) {
+	fprintf( stderr, "fgets failed: line too long\n" );
+	exit( 2 );
+    }
+    buf[ len - 1 ] = '\0';
+
+    if (( line = strdup( buf )) == NULL ) {
+	fprintf( stderr, "strdup failed: %s\n", strerror( errno ));
+	exit( 2 );
+    }
+
+    return( line );
+}
+    
     int
 main( int ac, char *av[] )
 {
@@ -52,7 +79,8 @@ main( int ac, char *av[] )
     dc_param_t		*params = NULL;
     char		*cfg_path;
     char		*api_url = NULL;
-    char		*user = "admorten";
+    char		*user = NULL;
+    char		*device = NULL;
     int			status;
 
     cfg_path = dc_get_cfg_path( ac, av );
@@ -68,6 +96,9 @@ main( int ac, char *av[] )
 	exit( 2 );
     }
 
+    user = dc_read_input_line();
+    device = dc_read_input_line();
+
     if ( dc_api_request_dispatch( DC_PING_URL_REF_ID, NULL, cfg_list ) < 0 ) {
 	exit( 2 );
     }
@@ -76,18 +107,18 @@ main( int ac, char *av[] )
     }
 
     if ( user != NULL ) {
-	params = NULL;
-	DC_PARAMS_PUSH_STR( &params, "username", "admorten" );
+	DC_PARAMS_ADD( &params, USERNAME, user );
 	dc_api_request_dispatch( DC_PREAUTH_URL_REF_ID, params, cfg_list );
 	dc_param_list_free( &params );
 
-	params = NULL;
-	DC_PARAMS_PUSH_STR( &params, "username", "admorten" );
-	DC_PARAMS_PUSH_STR( &params, "factor", "push" );
-	DC_PARAMS_PUSH_STR( &params, "device", "DEVICE_ID_GOES_HERE" );
+	DC_PARAMS_ADD( &params, USERNAME, user );
+	DC_PARAMS_ADD( &params, FACTOR, "push" );
+	DC_PARAMS_ADD( &params, DEVICE, device );
 	dc_api_request_dispatch( DC_AUTH_URL_REF_ID, params, cfg_list );
 	dc_param_list_free( &params );
     }
+
+    free( user );
 
     curl_global_cleanup();
 
