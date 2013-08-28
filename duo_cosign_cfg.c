@@ -16,6 +16,19 @@
 
 extern int		errno;
 
+    char *
+dc_get_cfg_path( void )
+{
+    char        *path = NULL;
+
+    path = getenv( DC_CFG_PATH_ENV_NAME );
+    if ( path == NULL ) {
+        path = DC_CFG_PATH_DEFAULT;
+    }
+
+    return( path );
+}
+
     int
 dc_cfg_read( char *cfg_path, dc_cfg_entry_t **cfg_list )
 {

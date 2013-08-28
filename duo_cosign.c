@@ -21,19 +21,6 @@
 extern int		errno;
 
     static char *
-dc_get_cfg_path( void )
-{
-    char	*path = NULL;
-
-    path = getenv( DC_CFG_PATH_ENV_NAME );
-    if ( path == NULL ) {
-	path = DC_CFG_PATH_DEFAULT;
-    }
-
-    return( path );
-}
-
-    static char *
 dc_read_input_line( void )
 {
     char		buf[ 512 ];

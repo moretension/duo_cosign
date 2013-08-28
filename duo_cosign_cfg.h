@@ -29,6 +29,7 @@ struct dc_cfg_entry {
 };
 typedef struct dc_cfg_entry	dc_cfg_entry_t;
 
+char	*dc_get_cfg_path( void );
 int	dc_cfg_read( char *, dc_cfg_entry_t ** );
 void	dc_cfg_free( dc_cfg_entry_t ** );
 
