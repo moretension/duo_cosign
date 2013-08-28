@@ -47,7 +47,6 @@ typedef enum {
 } dc_param_type_t; 
 #define DC_PARAM_TYPE_MAX	DC_PARAM_TYPE_STR
 
-#define DC_MAX_PARAMS		8
 struct dc_param {
     struct dc_param	*next;
     dc_param_type_t	type;
