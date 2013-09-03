@@ -44,6 +44,12 @@ struct factorlist {
     struct factorlist	*fl_next;
 };
 
+struct uservarlist { 
+    char                *uv_var;
+    char                *uv_value;
+    struct uservarlist  *uv_next;
+};
+
 struct proxies {
     char		*pr_hostname;
     char		*pr_cookie;

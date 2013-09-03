@@ -294,6 +294,7 @@ main( int argc, char *argv[] )
     regmatch_t			matches[ 2 ];
     int				nmatch = 2;
     CGIHANDLE			*cgi;
+    struct uservarlist          *uv;
 
     if ( argc == 2 ) {
 	if ( strcmp( argv[ 1 ], "-V" ) == 0 ) {
@@ -818,7 +819,7 @@ loggedin:
 		    " before secondary authentication.";
 	    goto loginscreen;
 	}
-	if (( rc = execfactor( fl, cl, &msg )) != COSIGN_CGI_OK ) {
+	if (( rc = execfactor( fl, cl, &msg, &uv )) != COSIGN_CGI_OK ) {
 	    sl[ SL_ERROR ].sl_data = msg;
             if ( rc == COSIGN_CGI_PASSWORD_EXPIRED ) {
 	        sl[ SL_TITLE ].sl_data = "Password Expired";

@@ -21,8 +21,42 @@
 #include "conf.h"
 #include "factor.h"
 
+    static void
+adduservar( struct uservarlist **uv, char *line )
+{
+  char 			*equalspos;
+  char			*valuepos;
+  char			savechr;
+  struct uservarlist	*new_uv;
+
+  equalspos = strchr( line, '=' );
+  if ( equalspos == NULL ) {
+    /* Didn't find the equals. */
+    return;
+  }
+
+  new_uv = ( struct uservarlist * ) malloc ( sizeof ( struct uservarlist ) );
+  if ( new_uv == NULL ) {
+    perror( "adduservar" );
+    return;
+  }
+
+  valuepos = equalspos + 1;
+  savechr = *equalspos;
+  *equalspos = '\0';
+
+  new_uv->uv_var = strdup( line );
+  new_uv->uv_value = strdup( valuepos );
+  new_uv->uv_next = uv;
+
+  *equalspos = savechr;
+
+  uv = new_uv;
+}
+
     int
-execfactor( struct factorlist *fl, struct cgi_list cl[], char **msg )
+execfactor( struct factorlist *fl, struct cgi_list cl[], char **msg,
+	    struct uservarlist **uv )
 {
     int			fd0[ 2 ], fd1[ 2 ], i, status;
     pid_t		pid;
@@ -32,6 +66,7 @@ execfactor( struct factorlist *fl, struct cgi_list cl[], char **msg )
     static char		prev[ 1024 ];
 
     *msg = NULL;
+    *uv = NULL;
 
     if ( pipe( fd0 ) < 0 || pipe( fd1 ) < 0 ) {
 	perror( "pipe" );
@@ -93,8 +128,12 @@ execfactor( struct factorlist *fl, struct cgi_list cl[], char **msg )
     tv.tv_sec = 10;
     tv.tv_usec = 0;
     while (( line = snet_getline( sn_r, &tv )) != NULL ) {
-	strncpy( prev, line, sizeof( prev ));
-	prev[ sizeof( prev ) - 1 ] = '\0';
+        if ( line[0] == '$' && strchr( line, '=' ) != NULL ) {
+	  adduservar(uv, line);
+	} else {
+	  strncpy( prev, line, sizeof( prev ));
+	  prev[ sizeof( prev ) - 1 ] = '\0';
+	}
     }
     if ( errno == ETIMEDOUT ) {
 	kill( pid, SIGKILL );
