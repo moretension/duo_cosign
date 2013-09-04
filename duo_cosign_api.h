@@ -41,6 +41,45 @@ struct dc_data {
 typedef struct dc_data	dc_data_t;
 
 typedef enum {
+    DC_STATUS_OK = 0,
+    DC_STATUS_REQ_FAIL,
+    DC_STATUS_FAIL,
+} dc_status_t;
+
+#define DC_STATUS_OK_STR	"OK"
+#define DC_STATUS_FAIL_STR	"FAIL"
+
+typedef enum {
+    DC_RESPONSE_TYPE_OBJECT = 0,
+    DC_RESPONSE_TYPE_STRING,
+    DC_RESPONSE_TYPE_ERROR,
+} dc_response_type_t;
+
+struct dc_response {
+    dc_status_t		status;
+    dc_response_type_t	type;
+    union {
+	void		*response_obj;
+#define response_object	u.response_obj
+	const char	*response_str;
+#define response_string	u.response_str
+	struct {
+	    int		code;
+	    const char	*message;
+	    const char	*detail;
+	} response_err;
+#define response_error	u.response_err
+    } u;
+};
+typedef struct dc_response	dc_response_t;
+
+#define DC_RESPONSE_CODE_KEY		"code"
+#define DC_RESPONSE_MESSAGE_KEY		"message"
+#define DC_RESPONSE_MESSAGE_DETAIL_KEY	"message_detail"
+#define DC_RESPONSE_RESPONSE_KEY	"response"
+#define DC_RESPONSE_STAT_KEY		"stat"
+
+typedef enum {
     DC_PARAM_TYPE_INT,
     DC_PARAM_TYPE_STR,
     DC_PARAM_TYPE_PTR,
@@ -108,6 +147,6 @@ int	dc_api_hmac_for_request( duo_cosign_api_t *, dc_cfg_entry_t *,
 				char *, char *, int );
 char	*dc_api_url_for_request( duo_cosign_api_t *req );
 int	dc_api_request_dispatch( dc_url_ref_id_t, dc_param_t *,
-				dc_cfg_entry_t * );
+				dc_cfg_entry_t *, dc_response_t * );
 
 #endif /* DUO_COSIGN_API_H */

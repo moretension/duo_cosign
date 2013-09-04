@@ -16,6 +16,7 @@
 
 #include "duo_cosign_api.h"
 #include "duo_cosign_curl.h"
+#include "duo_cosign_json.h"
 
 extern int		errno;
 char			*dc_api_hostname = NULL;
@@ -186,9 +187,9 @@ duo_cosign_api_t	dc_api[] = {
     { DC_ENROLL_STATUS_URL_REF,
 		DC_ENROLL_STATUS_URL_REF_ID, DC_API_POST, NULL },
     { DC_PREAUTH_URL_REF,
-		DC_PREAUTH_URL_REF_ID, DC_API_POST, dc_api_set_params },
+		DC_PREAUTH_URL_REF_ID, DC_API_POST, NULL },
     { DC_AUTH_URL_REF,
-		DC_AUTH_URL_REF_ID, DC_API_POST, dc_api_set_params },
+		DC_AUTH_URL_REF_ID, DC_API_POST, NULL },
     { DC_AUTH_URL_REF,
 		DC_AUTH_URL_REF_ID, DC_API_POST, NULL },
     { DC_AUTH_STATUS_URL_REF,
@@ -288,7 +289,6 @@ dc_api_hmac_for_request( duo_cosign_api_t *req, dc_cfg_entry_t *cfg,
     HMAC_Update( &ctx, (const unsigned char *)&lf, 1 );
 
     if ( params ) {
-fprintf( stderr, "ADMORTEN DEBUG: params = <%s>\n", params );
 	HMAC_Update( &ctx, (const unsigned char *)params,
 			    strlen( params ));
     }
@@ -304,21 +304,6 @@ fprintf( stderr, "ADMORTEN DEBUG: params = <%s>\n", params );
 	p += 2;
     }
     *p = '\0';
-fprintf( stderr, "ADMORTEN DEBUG: hmac_hex: %s\n", hmac_hex );
-
-#ifdef notdef
-    p = hmac_hex;
-    for ( i = 0; i < len; i++ ) {
-	snprintf( p, 3, "%02x", md[ i ] );
-	p += 2;
-
-	if (( p - hmac_hex ) >= maxhexlen ) {
-	    fprintf( stderr, "duo_cosign: hex buffer too small\n" );
-	    return( 0 );
-	}
-    }
-fprintf( stderr, "ADMORTEN DEBUG: snprintf hmac_hex: %s\n", hmac_hex );
-#endif /* notdef */
 
     return( p - hmac_hex );
 }
@@ -330,7 +315,6 @@ dc_api_url_for_request( duo_cosign_api_t *req )
 {
     char		*api_url;
     int			len;
-    int			rc;
 
     assert( dc_api_hostname != NULL );
     assert( req != NULL );
@@ -374,18 +358,22 @@ dc_process_response_data( char *data, size_t sz, size_t nmemb, void *info )
 
     int
 dc_api_request_dispatch( dc_url_ref_id_t req_id, dc_param_t *req_params,
-	dc_cfg_entry_t *cfg )
+	dc_cfg_entry_t *cfg, dc_response_t *response )
 {
     CURL		*hcurl = NULL;
     CURLcode		rc;
     struct curl_slist	*headers = NULL;
     char		buf[ DC_API_RESPONSE_MAX ];
     dc_data_t		response_data = { 0, buf };
+    dc_json_t		*jsn;
+    dc_json_err_t	jsn_err;
     char		hmac_hex[ EVP_MAX_MD_SIZE * 2 + 2 ];
     char		date[ 64 ];
     char		*api_url;
-    char		*params;
-    int			status = -1;
+    char		*params = NULL;
+    int			status = DC_STATUS_FAIL;
+
+    assert( response != NULL );
 
     hcurl = curl_easy_init();
     if ( hcurl == NULL ) {
@@ -405,8 +393,7 @@ dc_api_request_dispatch( dc_url_ref_id_t req_id, dc_param_t *req_params,
     }
 
     if ( req_params ) {
-	params = dc_api[ req_id ].param_fn( hcurl, req_params );
-fprintf( stderr, "params: %s\n", params );
+	params = dc_api_set_params( hcurl, req_params );
     }
 
     if ( dc_api_hmac_for_request( &dc_api[ req_id ], cfg, params,
@@ -454,7 +441,31 @@ fprintf( stderr, "params: %s\n", params );
 
     write( 2, response_data.data, response_data.len );
 
-    status = 0;
+    jsn = duo_cosign_json_parse( response_data.data, response_data.len,
+					&jsn_err );
+    if ( jsn == NULL ) {
+	/* XXX fill buffer with jsn_err data */
+	fprintf( stderr, "JSON response parsing failed: %s "
+		"(line %d, column %d, position %d)\n",
+		jsn_err.text, jsn_err.line, jsn_err.column, jsn_err.position );
+			
+	goto done;
+    }
+
+    if ( duo_cosign_json_get_response( jsn, response ) != 0 ) {
+	fprintf( stderr, "Missing or invalid data in response...\n" );
+	goto done;
+    }
+
+    if ( response->type == DC_RESPONSE_TYPE_ERROR ) {
+	fprintf( stderr, "API request failed: %s: %s (code %d)\n",
+		response->response_error.message,
+		response->response_error.detail,
+		response->response_error.code );
+	goto done;
+    }
+
+    status = DC_STATUS_OK;
 
 done:
     if ( headers != NULL ) {

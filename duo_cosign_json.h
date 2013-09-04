@@ -17,6 +17,7 @@
 
 
 dc_json_t	*duo_cosign_json_parse( char *, int, dc_json_err_t * );
+int		duo_cosign_json_get_response( dc_json_t *, void * );
 
 
 #endif /* DUO_COSIGN_JSON_H */

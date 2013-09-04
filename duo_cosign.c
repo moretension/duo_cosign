@@ -53,14 +53,10 @@ main( int ac, char *av[] )
     CURL		*hcurl;
     CURLcode		rc;
     struct curl_slist	*headers = NULL;
-    dc_data_t		dc_response_buf = { 0, NULL };
-    char		buf[ DC_API_RESPONSE_MAX ];
-    char		hmac_hex[ EVP_MAX_MD_SIZE * 2 + 2 ];
-    char		date[ 40 ];
     dc_cfg_entry_t	*cfg_list = NULL;
     dc_param_t		*params = NULL;
+    dc_response_t	resp;
     char		*cfg_path;
-    char		*api_url = NULL;
     char		*user = NULL;
     char		*device = NULL;
     int			status;
@@ -81,22 +77,29 @@ main( int ac, char *av[] )
     user = dc_read_input_line();
     device = dc_read_input_line();
 
-    if ( dc_api_request_dispatch( DC_PING_URL_REF_ID, NULL, cfg_list ) < 0 ) {
+    if ( dc_api_request_dispatch( DC_PING_URL_REF_ID, NULL,
+		cfg_list, &resp ) < 0 ) {
 	exit( 2 );
     }
-    if ( dc_api_request_dispatch( DC_CHECK_URL_REF_ID, NULL, cfg_list ) < 0 ) {
+    
+    if ( dc_api_request_dispatch( DC_CHECK_URL_REF_ID, NULL,
+		cfg_list, &resp ) < 0 ) {
 	exit( 2 );
     }
 
     if ( user != NULL ) {
 	DC_PARAMS_ADD( &params, USERNAME, user );
-	dc_api_request_dispatch( DC_PREAUTH_URL_REF_ID, params, cfg_list );
+	dc_api_request_dispatch( DC_PREAUTH_URL_REF_ID, params,
+		cfg_list, &resp );
 	dc_param_list_free( &params );
 
 	DC_PARAMS_ADD( &params, USERNAME, user );
-	DC_PARAMS_ADD( &params, FACTOR, "push" );
-	DC_PARAMS_ADD( &params, DEVICE, device );
-	dc_api_request_dispatch( DC_AUTH_URL_REF_ID, params, cfg_list );
+	//DC_PARAMS_ADD( &params, FACTOR, "push" );
+	//DC_PARAMS_ADD( &params, DEVICE, device );
+	DC_PARAMS_ADD( &params, FACTOR, "passcode" );
+	DC_PARAMS_ADD( &params, PASSCODE, device );
+	dc_api_request_dispatch( DC_AUTH_URL_REF_ID, params,
+		cfg_list, &resp );
 	dc_param_list_free( &params );
     }
 
