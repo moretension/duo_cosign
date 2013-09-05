@@ -43,6 +43,7 @@
 #include "network.h"
 #include "subfile.h"
 #include "mkcookie.h"
+#include "uservar.h"
 
 extern int	errno;
 

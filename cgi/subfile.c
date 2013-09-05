@@ -13,6 +13,7 @@
 
 #include <openssl/ssl.h>
 #include "subfile.h"
+#include "uservar.h"
 
     static int
 process_var ( FILE *fs, struct subfile_list *sl, struct uservarlist *uv );

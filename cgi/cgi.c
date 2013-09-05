@@ -27,6 +27,7 @@
 #include "subfile.h"
 #include "factor.h"
 #include "mkcookie.h"
+#include "uservar.h"
 
 #define SERVICE_MENU	"/services/"
 #define LOOPWINDOW      30 

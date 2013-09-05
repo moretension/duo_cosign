@@ -20,6 +20,7 @@
 
 #include "conf.h"
 #include "factor.h"
+#include "uservar.h"
 
     static void
 adduservar( struct uservarlist **uv, char *line )

@@ -3,6 +3,6 @@
  * All Rights Reserved.  See LICENSE.
  */
 
-#include "uservar.h" /* necessary for uservarlist */
+struct uservarlist;
 
 int	execfactor( struct factorlist *, struct cgi_list *, char **, struct uservarlist ** );
