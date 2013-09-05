@@ -2,6 +2,11 @@
  * Copyright (c) 2004 Regents of The University of Michigan.
  * All Rights Reserved.  See LICENSE.
  */
+
+#ifndef __CONF_H
+#define __CONF_H
+
+
 #include <regex.h>	/* needed for regmatch parameters below. */
 
 #define NOTAUTH 0 
@@ -111,3 +116,5 @@ int		negotiate_translate( char *, char **, char ** );
 int		pick_authenticator( char *,char **, char **, char **,
 			struct matchlist ** );
 
+
+#endif

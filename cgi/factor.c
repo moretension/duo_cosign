@@ -47,7 +47,7 @@ adduservar( struct uservarlist **uv, char *line )
 
   new_uv->uv_var = strdup( line );
   new_uv->uv_value = strdup( valuepos );
-  new_uv->uv_next = uv;
+  new_uv->uv_next = *uv;
 
   *equalspos = savechr;
 
