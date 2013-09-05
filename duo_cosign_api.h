@@ -6,6 +6,8 @@
 #ifndef DUO_COSIGN_API_H
 #define DUO_COSIGN_API_H
 
+#include <time.h>
+
 #include "duo_cosign_cfg.h"
 
 #define DC_API_RESPONSE_MAX		8192
@@ -44,10 +46,18 @@ typedef enum {
     DC_STATUS_OK = 0,
     DC_STATUS_REQ_FAIL,
     DC_STATUS_FAIL,
+    DC_STATUS_AUTH_REQUIRED,
+    DC_STATUS_USER_ALLOWED,
+    DC_STATUS_USER_DENIED,
+    DC_STATUS_USER_NOT_ENROLLED,
 } dc_status_t;
 
-#define DC_STATUS_OK_STR	"OK"
-#define DC_STATUS_FAIL_STR	"FAIL"
+#define DC_STATUS_OK_STR		"OK"
+#define DC_STATUS_FAIL_STR		"FAIL"
+#define DC_STATUS_AUTH_REQUIRED_STR	"auth"
+#define DC_STATUS_USER_ALLOWED_STR	"allow"
+#define DC_STATUS_USER_DENIED_STR	"deny"
+#define DC_STATUS_USER_NOT_ENROLLED_STR	"enroll"
 
 typedef enum {
     DC_RESPONSE_TYPE_OBJECT = 0,
@@ -78,6 +88,67 @@ typedef struct dc_response	dc_response_t;
 #define DC_RESPONSE_MESSAGE_DETAIL_KEY	"message_detail"
 #define DC_RESPONSE_RESPONSE_KEY	"response"
 #define DC_RESPONSE_STAT_KEY		"stat"
+
+#define DC_RESPONSE_TIME_KEY		"time"
+
+
+typedef enum {
+    DC_DEVICE_TYPE_UNKNOWN = 0,
+    DC_DEVICE_TYPE_PHONE = 1,
+    DC_DEVICE_TYPE_TOKEN,
+    DC_DEVICE_TYPE_DESKTOPTOKEN,
+} dc_device_type_t;
+
+#define DC_DEVICE_TYPE_PHONE_KEY	"phone"
+#define DC_DEVICE_TYPE_TOKEN_KEY	"token"
+#define DC_DEVICE_TYPE_DESKTOPTOKEN_KEY	"desktoptoken"
+
+typedef enum {
+    DC_DEVICE_CAPA_NONE = 0,
+    DC_DEVICE_CAPA_PUSH = (1 << 0),
+    DC_DEVICE_CAPA_PHONE = (1 << 1),
+    DC_DEVICE_CAPA_SMS = (1 << 2),
+} dc_device_capa_t;
+
+#define DC_DEVICE_CAPA_PUSH_KEY		"push"
+#define DC_DEVICE_CAPA_PHONE_KEY	"phone"
+#define DC_DEVICE_CAPA_SMS_KEY		"sms"
+
+#define DC_DEVICE_CAPABILITIES_KEY	"capabilities"
+#define DC_DEVICE_DISPLAY_NAME_KEY	"display_name"
+#define DC_DEVICE_ID_KEY		"device"
+#define DC_DEVICE_NAME_KEY		"name"
+#define DC_DEVICE_NEXT_SMS_PASSCODE_KEY	"next_sms_passcode"
+#define DC_DEVICE_NUMBER_KEY		"number"
+#define DC_DEVICE_TYPE_KEY		"type"
+
+struct dc_device {
+    struct dc_device		*next;
+
+    dc_device_type_t		type;
+    dc_device_capa_t		capabilities;
+    const char			*id;
+    const char			*display_name;	
+    const char			*name;
+    const char			*next_sms_passcode;
+    const char			*number;
+};
+typedef struct dc_device	dc_device_t;
+
+char	*dc_device_list_json_serialize( dc_device_t * );
+
+struct dc_preauth_result {
+    dc_status_t			result;
+    const char			*status_msg;
+    const char			*enroll_url;
+    dc_device_t			*devices;
+};
+typedef struct dc_preauth_result	dc_preauth_result_t;
+
+#define DC_PREAUTH_RESULT_KEY		"result"
+#define DC_PREAUTH_STATUS_MSG_KEY	"status_msg"
+#define DC_PREAUTH_ENROLL_URL_KEY	"enroll_portal_url"
+#define DC_PREAUTH_DEVICES_KEY		"devices"
 
 typedef enum {
     DC_PARAM_TYPE_INT,
@@ -148,5 +219,16 @@ int	dc_api_hmac_for_request( duo_cosign_api_t *, dc_cfg_entry_t *,
 char	*dc_api_url_for_request( duo_cosign_api_t *req );
 int	dc_api_request_dispatch( dc_url_ref_id_t, dc_param_t *,
 				dc_cfg_entry_t *, dc_response_t * );
+
+/* convenience wrappers */
+typedef void	dc_auth_t;
+typedef void	dc_auth_result_t;
+
+int	dc_ping( dc_cfg_entry_t *, time_t * );
+int	dc_check( dc_cfg_entry_t *, time_t * );
+int	dc_preauth( dc_cfg_entry_t *, char *, dc_preauth_result_t * );
+void	dc_preauth_result_clear( dc_preauth_result_t * );
+int	dc_auth( dc_cfg_entry_t *, dc_auth_t *, dc_auth_result_t * );
+int	dc_auth_status( dc_cfg_entry_t *, char * );
 
 #endif /* DUO_COSIGN_API_H */

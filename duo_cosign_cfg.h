@@ -14,6 +14,7 @@
 #define DC_CFG_KEY_API_HOST	"host"
 #define DC_CFG_KEY_API_IKEY	"ikey"
 #define DC_CFG_KEY_API_SKEY	"skey"
+#define DC_CFG_KEY_FACTOR_NAME	"factor name"
 
 #define DC_CFG_API_HOST(c) \
 	dc_cfg_value_for_key((c), DC_CFG_KEY_API_HOST )
@@ -21,6 +22,10 @@
 	dc_cfg_value_for_key((c), DC_CFG_KEY_API_IKEY )
 #define DC_CFG_API_SKEY(c) \
 	dc_cfg_value_for_key((c), DC_CFG_KEY_API_SKEY )
+#define DC_CFG_FACTOR_NAME(c) \
+	dc_cfg_value_for_key((c), DC_CFG_KEY_FACTOR_NAME )
+
+#define _DC_FACTOR_NAME		"Duo"
 
 struct dc_cfg_entry {
     struct dc_cfg_entry	*next;
