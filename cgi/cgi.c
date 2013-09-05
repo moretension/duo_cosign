@@ -745,7 +745,7 @@ main( int argc, char *argv[] )
             if ( strcmp( type, "mysql" ) == 0 ) {
 	        if (( rc = cosign_login_mysql( head, login, username, realm, 
 					cl[ CL_PASSWORD ].cl_data, ip_addr,
-					cookie, &sp, &msg )) == COSIGN_CGI_OK) {
+					cookie, &sp, &msg, uv )) == COSIGN_CGI_OK) {
 		    goto loggedin;
 	        }
 	    } else
@@ -754,7 +754,7 @@ main( int argc, char *argv[] )
             if ( strcmp( type, "kerberos" ) == 0 ) {
 	        if (( rc = cosign_login_krb5( head, login, username, realm, 
 				        cl[ CL_PASSWORD ].cl_data, ip_addr,
-					cookie, &sp, &msg )) == COSIGN_CGI_OK) {
+					cookie, &sp, &msg, uv)) == COSIGN_CGI_OK) {
 		    goto loggedin;
                 }
 	    } else
@@ -763,7 +763,7 @@ main( int argc, char *argv[] )
 	    if ( strcmp( type, "pam" ) == 0 ) {
 		if (( rc = cosign_login_pam( head, login, username, realm,
 					cl[ CL_PASSWORD ].cl_data, ip_addr,
-					cookie, &sp, &msg )) == COSIGN_CGI_OK) {
+					cookie, &sp, &msg, uv )) == COSIGN_CGI_OK) {
 		    goto loggedin;
 		}
 	    } else
