@@ -15,8 +15,29 @@
 #include "duo_cosign_api.h"
 #include "duo_cosign_cfg.h"
 #include "duo_cosign_curl.h"
+#include "duo_cosign_json.h"
 
 extern int		errno;
+
+char			*xname;
+
+    static char *
+dc_get_exec_name( char *exec_path )
+{
+    char		*exec_name;
+
+    exec_name = strrchr( exec_path, '/' );
+    if ( exec_name != NULL ) {
+	exec_name++;
+	if ( *exec_name == '\0' ) {
+	    abort();
+	}
+    } else {
+	exec_name = exec_path;
+    }
+
+    return( exec_name );
+}
 
     static char *
 dc_read_input_line( void )
