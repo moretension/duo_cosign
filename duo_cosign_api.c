@@ -334,7 +334,6 @@ dc_api_url_for_request( duo_cosign_api_t *req )
 	len += strlen( req->url_ref );
 
 	api_url[ len ] = '\0';
-fprintf( stderr, "api_url: %s\n", api_url );
     }
 
     return( api_url );
