@@ -115,7 +115,7 @@ substitute_uservar( FILE *fs, int c, struct subfile_list *sl, struct uservarlist
        return 0;
   }
 
-  /* Read the rest of the variable name, terminated with a space */
+  /* Read the rest of the variable name, terminated with a non-legal varchar */
   while ( varpos < sizeof( varname ) ) {
 
     if ( ( c = getc( fs ) ) == EOF ) {
@@ -129,8 +129,11 @@ substitute_uservar( FILE *fs, int c, struct subfile_list *sl, struct uservarlist
     }
 
     if ( c == '$' ) {
-      if ( strlen( varname ) ) {
+      if ( strlen( varname ) > 0 ) {
 	emit_uservar( varname, uv );
+      } else {
+	substitute_subfilevar( 'v', sl );
+	putchar( ':' );
       }
 
       return process_var( fs, sl, uv );
