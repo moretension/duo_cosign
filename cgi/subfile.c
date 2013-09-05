@@ -15,6 +15,11 @@
 #include "subfile.h"
 #include "uservar.h"
 
+#define LEGAL_VARCHAR( c ) ( ( (c) >= 'a' && (c) <= 'z' ) || \
+                             ( (c) >= 'A' && (c) <= 'Z' ) || \
+                             ( (c) >= '0' && (c) <= '9' ) || \
+                             (c) == '_' )
+
     static int
 process_var ( FILE *fs, struct subfile_list *sl, struct uservarlist *uv );
 
@@ -26,7 +31,7 @@ process_var ( FILE *fs, struct subfile_list *sl, struct uservarlist *uv );
  */
 
     static int
-substitute( int c, struct subfile_list *sl )
+substitute_subfilevar( int c, struct subfile_list *sl )
 {
   int 		i, j;
   static char	nasties[] = "<>(){}[]'`\" \\";
@@ -68,7 +73,7 @@ substitute( int c, struct subfile_list *sl )
 emit_uservar( char *varname, struct uservarlist *uv )
 {
   while ( uv ) {
-    if ( strcmp( varname, uv->uv_var ) ) {
+    if ( !strcmp( varname, uv->uv_var ) ) {
       printf( "%s", uv->uv_value );
       return;
     }
@@ -77,13 +82,14 @@ emit_uservar( char *varname, struct uservarlist *uv )
   }
 }
 
+
 /* return codes:
  * EOF: done processing the file
  * 0: go read the next character
  * anything else: the next unhandled character in the stream */
 
     static int
-uservar( FILE *fs, int c, struct subfile_list *sl, struct uservarlist *uv )
+substitute_uservar( FILE *fs, int c, struct subfile_list *sl, struct uservarlist *uv )
 {
   char 		varname[1024];
   int 		varpos = 0;
@@ -92,27 +98,36 @@ uservar( FILE *fs, int c, struct subfile_list *sl, struct uservarlist *uv )
     return c;
   }
 
-  /* look for ":varname<space>" */
-  if ( ( c = getc ( fs ) ) == EOF ) {
-    substitute( 'v', sl );
+  /* look for ":varname" with legit chars [a-zA-Z0-9_] */
+
+  if ( ( c = getc( fs ) ) == EOF ) {
+    substitute_subfilevar( 'v', sl );
     return EOF;
   }
 
   if ( c != ':' ) {
     /* We have "$v" but not "$v:" */
-       substitute( 'v', sl );
+       substitute_subfilevar( 'v', sl );
        return ':';
   }
 
   /* Read the rest of the variable name, terminated with a space */
   while ( varpos < sizeof( varname ) ) {
+
     if ( ( c = getc( fs ) ) == EOF ) {
+      if ( strlen( varname ) ) {
+	emit_uservar( varname, uv );
+      } else {
+	substitute_subfilevar( 'v', sl );
+	putchar( ':' );
+      }
       return EOF;
     }
+
     if ( c == '$' ) {
       /* Found a '$' terminating our variable pattern. Illegal syntax for 
-       * $v:variable<sp>, so treat it as an old-school substitution */
-      substitute( 'v', sl );
+       * $v:variable, so treat it as an old-school substitution */
+      substitute_subfilevar( 'v', sl );
 
       /* Dump what we read so far */
       printf( ":%s", varname );
@@ -120,13 +135,13 @@ uservar( FILE *fs, int c, struct subfile_list *sl, struct uservarlist *uv )
       return '$';
     }
 
-    if ( c == ' ' ) {
+    if ( !LEGAL_VARCHAR(c) ) {
       if ( varpos == 0 ) {
-	/* Found a space immeditely following "$v:"; substitute the 'v', 
-	 * emit the ": " */
-	   substitute( 'v', sl );
+	/* Found a non-variable name character immediately following
+	 * "$v:"; substitute the 'v', emit the ":<c>" */
+	   substitute_subfilevar( 'v', sl );
 	   putchar( ':' );
-	   putchar( ' ' );
+	   putchar( c );
 	   return 0;
       }
 
@@ -135,6 +150,13 @@ uservar( FILE *fs, int c, struct subfile_list *sl, struct uservarlist *uv )
        * not emit). */
 
       emit_uservar( varname, uv );
+
+      if ( c == '$' ) {
+	return process_var( fs, sl, uv );
+      }
+
+      putchar( c );
+
       return 0;
     }
 
@@ -147,8 +169,7 @@ uservar( FILE *fs, int c, struct subfile_list *sl, struct uservarlist *uv )
 
 /* return codes:
  * EOF: EOF was found; stop processing
- * 0: emitted, naught to do, go get the next char
- * anything else: new return value of c (probably worthless?)
+ * anything else: continue processing
  */
 
     static int
@@ -165,23 +186,19 @@ process_var ( FILE *fs, struct subfile_list *sl, struct uservarlist *uv )
     putchar( c );
     return 0;
   }
-  
-  if ( 1 ) {
-    if ( ( c = uservar( fs, c, sl, uv ) ) == 0  ||
-	 c == EOF ) {
-      return c;
-    }
-    if ( c == '$' ) {
-      /* uservar processing found the start of another 
-       * variable name; need to process it, too */
-      return process_var( fs, sl, uv );
-    }
 
-    putchar( c );
-    return 0;
+  /* user variable substitution ("$v:varname") gets priority. */
+  if ( ( c = substitute_uservar( fs, c, sl, uv ) ) == 0  ||
+       c == EOF ) {
+    return c;
   }
-  
-  return substitute( c, sl );
+
+  /* If that didn't work, then perform old school subfile substitution. */
+  if ( substitute_subfilevar( c, sl ) == EOF ) {
+    return EOF;
+  }
+
+  return 0;
 }
 
     void
@@ -246,17 +263,6 @@ subfile( char *filename, struct subfile_list *sl,
 	    /* At EOF, stop processing */
 	    break;
 	  }
-
-	  if ( c == 0 ) {
-	    /* Being told to look at the next charater in the stream */
-	    continue;
-	  }
-
-	  /* else nothing to do; just keep swimming. Worthless return
-	     value, which has the same action as c == 0. If there are
-	     no better uses of the return value from process_var, it
-	     should be rewritten to make the return value simpler.  */
-
 	} else {
 	    putchar( c );
 	}

@@ -46,7 +46,13 @@ adduservar( struct uservarlist **uv, char *line )
   savechr = *equalspos;
   *equalspos = '\0';
 
-  new_uv->uv_var = strdup( line );
+  if ( strlen( &line[1] ) == 0 ) {
+    fprintf( stderr, "Variable is of length zero? Skipping.\n" );
+    *equalspos = savechr;
+    return;
+  }
+
+  new_uv->uv_var = strdup( &line[1] ); /* Skip the leading '$' */
   new_uv->uv_value = strdup( valuepos );
   new_uv->uv_next = *uv;
 
