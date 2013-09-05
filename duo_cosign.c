@@ -18,6 +18,14 @@
 #include "duo_cosign_curl.h"
 #include "duo_cosign_json.h"
 
+#define DC_EXEC_NAME_AUTH	"duo_cosign"
+#define DC_EXEC_NAME_AUTH_STAT	"duo_cosign_auth_status"
+#define DC_EXEC_NAME_CHECK	"duo_cosign_check"
+#define DC_EXEC_NAME_ENROLL	"duo_cosign_enroll"
+#define DC_EXEC_NAME_PING	"duo_cosign_ping"
+#define DC_EXEC_NAME_PREAUTH	"duo_cosign_preauth"
+
+
 extern int		errno;
 
 char			*xname;
@@ -65,6 +73,36 @@ dc_read_input_line( void )
     }
 
     return( line );
+}
+
+    static int
+dc_exec_ping( dc_cfg_entry_t *cfg )
+{
+    time_t		tstamp;
+
+    if ( dc_ping( cfg, &tstamp ) != DC_STATUS_OK ) {
+	fprintf( stderr, "ping failed\n" );
+	exit( 2 );
+    }
+
+    printf( "%ld\n", tstamp );
+
+    return( DC_STATUS_OK );
+}
+
+    static int
+dc_exec_check( dc_cfg_entry_t *cfg )
+{
+    time_t		tstamp;
+
+    if ( dc_check( cfg, &tstamp ) != DC_STATUS_OK ) {
+	fprintf( stderr, "check failed\n" );
+	exit( 2 );
+    }
+
+    printf( "%ld\n", tstamp );
+
+    return( DC_STATUS_OK );
 }
 
     static int
@@ -128,17 +166,34 @@ dc_exec_preauth( dc_cfg_entry_t *cfg )
 }
 
     int
+dc_exec_auth( dc_cfg_entry_t *cfg )
+{
+    return( DC_STATUS_OK );
+}
+
+    int
 main( int ac, char *av[] )
 {
     dc_cfg_entry_t	*cfg_list = NULL;
     dc_param_t		*params = NULL;
     dc_response_t	resp;
+    dc_status_t		rc = DC_STATUS_FAIL;
     char		*cfg_path;
     char		*user = NULL;
     char		*auth_type = NULL;
     char		*auth_data = NULL;
     int			status;
-    time_t		tstamp;
+    int			i;
+    struct {
+	const char	*exec_name;
+	int		(*exec_fn)( dc_cfg_entry_t * );
+    } exec_name_tab[] = {
+	{ DC_EXEC_NAME_AUTH, dc_exec_auth },
+	{ DC_EXEC_NAME_CHECK, dc_exec_check },
+	{ DC_EXEC_NAME_PING, dc_exec_ping },
+	{ DC_EXEC_NAME_PREAUTH, dc_exec_preauth },
+	{ NULL, NULL },
+    };
 
     xname = dc_get_exec_name( av[ 0 ] );
 
@@ -154,20 +209,19 @@ main( int ac, char *av[] )
 	exit( 2 );
     }
 
+    for ( i = 0; exec_name_tab[ i ].exec_name != NULL; i++ ) {
+	if ( strcmp( xname, exec_name_tab[ i ].exec_name ) == 0 ) {
+	    break;
+	}
+    }
+    if ( exec_name_tab[ i ].exec_name == NULL ) {
+	fprintf( stderr, "%s: unrecognized execution name\n", xname );
+	exit( 1 );
+    }
+
+    rc = exec_name_tab[ i ].exec_fn( cfg_list );
+    
 #ifdef notdef
-    if ( dc_ping( cfg_list, &tstamp ) != DC_STATUS_OK ) {
-	fprintf( stderr, "ping failed\n" );
-	exit( 2 );
-    }
-    fprintf( stderr, "Ping timestamp: %ld\n", tstamp );
-
-    if ( dc_check( cfg_list, &tstamp ) != DC_STATUS_OK ) {
-	fprintf( stderr, "check failed\n" );
-	exit( 2 );
-    }
-    fprintf( stderr, "Check timestamp: %ld\n", tstamp );
-#endif /* notdef */
-
     if ( strcmp( xname, "duo_cosign_preauth" ) == 0 ) {
 	dc_exec_preauth( cfg_list );
     } else if ( strcmp( xname, "duo_cosign" ) == 0 ) {
@@ -189,9 +243,10 @@ main( int ac, char *av[] )
 	dc_param_list_free( &params );
 
     }
+#endif /* notdef */
 
     curl_global_cleanup();
 
-    return( 0 );
+    return( rc );
 }
 
