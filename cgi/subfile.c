@@ -108,7 +108,11 @@ substitute_uservar( FILE *fs, int c, struct subfile_list *sl, struct uservarlist
   if ( c != ':' ) {
     /* We have "$v" but not "$v:" */
        substitute_subfilevar( 'v', sl );
-       return ':';
+       if ( c == '$' ) {
+	 return process_var( fs, sl, uv );
+       }	 
+       putchar( c );
+       return 0;
   }
 
   /* Read the rest of the variable name, terminated with a space */
@@ -125,14 +129,11 @@ substitute_uservar( FILE *fs, int c, struct subfile_list *sl, struct uservarlist
     }
 
     if ( c == '$' ) {
-      /* Found a '$' terminating our variable pattern. Illegal syntax for 
-       * $v:variable, so treat it as an old-school substitution */
-      substitute_subfilevar( 'v', sl );
+      if ( strlen( varname ) ) {
+	emit_uservar( varname, uv );
+      }
 
-      /* Dump what we read so far */
-      printf( ":%s", varname );
-
-      return '$';
+      return process_var( fs, sl, uv );
     }
 
     if ( !LEGAL_VARCHAR(c) ) {
