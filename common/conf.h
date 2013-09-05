@@ -3,10 +3,6 @@
  * All Rights Reserved.  See LICENSE.
  */
 
-#ifndef __CONF_H
-#define __CONF_H
-
-
 #include <regex.h>	/* needed for regmatch parameters below. */
 
 #define NOTAUTH 0 
@@ -47,12 +43,6 @@ struct factorlist {
     int			fl_flag;
     char		*fl_formfield[ FL_MAXFORMFIELDS ];
     struct factorlist	*fl_next;
-};
-
-struct uservarlist { 
-    char                *uv_var;
-    char                *uv_value;
-    struct uservarlist  *uv_next;
 };
 
 struct proxies {
@@ -115,6 +105,3 @@ int 		x509_translate( char *, char *, char **, char ** );
 int		negotiate_translate( char *, char **, char ** );
 int		pick_authenticator( char *,char **, char **, char **,
 			struct matchlist ** );
-
-
-#endif

@@ -1,4 +1,4 @@
-#include "../common/conf.h" /* necessary for uservarlist */
+#include "uservar.h" /* necessary for uservarlist */
 
 struct subfile_list {
     char	sl_letter;

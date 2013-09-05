@@ -35,7 +35,7 @@ adduservar( struct uservarlist **uv, char *line )
     return;
   }
 
-  new_uv = ( struct uservarlist * ) malloc ( sizeof ( struct uservarlist ) );
+  new_uv = uservar_new();
   if ( new_uv == NULL ) {
     perror( "adduservar" );
     return;
