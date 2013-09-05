@@ -10,8 +10,6 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <openssl/hmac.h>
-
 #include <curl/curl.h>
 
 #include "duo_cosign_api.h"
