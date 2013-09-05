@@ -157,7 +157,7 @@ cosign_login_mysql( struct connlist *head, char *cosignname, char *id,
     lcgi_configure();
 
     if ( !mysql_real_connect( &friend_db, friend_db_name, friend_login, friend_passwd, "friend", 3306, NULL, 0 )) {
-	fprintf( stderr, mysql_error( &friend_db ));
+        fprintf( stderr, "%s", mysql_error( &friend_db ));
 	sl[ SL_ERROR ].sl_data = "Unable to connect to guest account database.";
 	sl[ SL_TITLE ].sl_data = "Database Problem";
 	subfile( tmpl, sl, NULL, 0 );
@@ -196,7 +196,7 @@ cosign_login_mysql( struct connlist *head, char *cosignname, char *id,
     }
 
     if( mysql_real_query( &friend_db, sql, strlen( sql ))) {
-	fprintf( stderr, mysql_error( &friend_db ));
+        fprintf( stderr, "%s", mysql_error( &friend_db ));
 	sl[ SL_ERROR ].sl_data = "Unable to query guest account database.";
 	sl[ SL_TITLE ].sl_data = "Server Problem";
 	subfile( tmpl, sl, NULL, 0 );
@@ -206,7 +206,7 @@ cosign_login_mysql( struct connlist *head, char *cosignname, char *id,
     if (( res = mysql_store_result( &friend_db )) == NULL ) {
 	/* was there an error?  NULL can be okay. */
 	if ( mysql_errno( &friend_db )) {
-	    fprintf( stderr, mysql_error( &friend_db ));
+	    fprintf( stderr, "%s", mysql_error( &friend_db ));
 	    sl[ SL_ERROR ].sl_data = "Problems connecting to the database.";
 	    sl[ SL_TITLE ].sl_data = "Database Connection Problem";
 	    subfile( tmpl, sl, NULL, 0 );
