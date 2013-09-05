@@ -51,7 +51,7 @@ adduservar( struct uservarlist **uv, char *line )
 
   *equalspos = savechr;
 
-  uv = new_uv;
+  *uv = new_uv;
 }
 
     int
