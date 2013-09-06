@@ -47,6 +47,7 @@ typedef enum {
     DC_STATUS_REQ_FAIL,
     DC_STATUS_FAIL,
     DC_STATUS_AUTH_REQUIRED,
+    DC_STATUS_AUTH_PENDING,
     DC_STATUS_USER_ALLOWED,
     DC_STATUS_USER_DENIED,
     DC_STATUS_USER_NOT_ENROLLED,
@@ -150,6 +151,29 @@ typedef struct dc_preauth_result	dc_preauth_result_t;
 #define DC_PREAUTH_ENROLL_URL_KEY	"enroll_portal_url"
 #define DC_PREAUTH_DEVICES_KEY		"devices"
 
+struct dc_auth {
+    char			*user;
+    char			*factor;
+    char			*data;
+    char			*ipaddr;
+    int				async;
+};
+typedef struct dc_auth		dc_auth_t;
+
+struct dc_auth_result {
+    int				async;
+    dc_status_t			result;
+    const char			*status;
+    const char			*status_msg;
+    const char			*txid;
+};
+typedef struct dc_auth_result	dc_auth_result_t;
+
+#define DC_AUTH_RESULT_KEY	DC_PREAUTH_RESULT_KEY
+#define DC_AUTH_STATUS_KEY	"status"
+#define DC_AUTH_STATUS_MSG_KEY	DC_PREAUTH_STATUS_MSG_KEY
+#define DC_AUTH_TXID_KEY	"txid"
+
 typedef enum {
     DC_PARAM_TYPE_INT,
     DC_PARAM_TYPE_STR,
@@ -221,9 +245,6 @@ int	dc_api_request_dispatch( dc_url_ref_id_t, dc_param_t *,
 				dc_cfg_entry_t *, dc_response_t * );
 
 /* convenience wrappers */
-typedef void	dc_auth_t;
-typedef void	dc_auth_result_t;
-
 int	dc_ping( dc_cfg_entry_t *, time_t * );
 int	dc_check( dc_cfg_entry_t *, time_t * );
 int	dc_preauth( dc_cfg_entry_t *, char *, dc_preauth_result_t * );

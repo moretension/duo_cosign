@@ -985,10 +985,132 @@ dc_preauth_result_clear( dc_preauth_result_t *presult )
     }
 }
 
+    static int
+_dc_auth_result_set_result( dc_auth_result_t *aresult, void *value )
+{
+    dc_json_t		*jsn = (dc_json_t *)value;
+    const char		*result;
+
+    result = json_string_value( jsn );
+    if ( result == NULL ) {
+	return( DC_STATUS_FAIL );
+    }
+    
+    if ( strcmp( result, DC_STATUS_USER_ALLOWED_STR ) == 0 ) {
+	aresult->result = DC_STATUS_USER_ALLOWED;
+    } else {
+	aresult->result = DC_STATUS_USER_DENIED;
+    }
+
+    return( DC_STATUS_OK );
+}
+
+    static int
+_dc_auth_result_set_string_value( const char **str, void *value )
+{
+    dc_json_t		*jsn = (dc_json_t *)value;
+
+    assert( str != NULL );
+
+    *str = json_string_value( jsn );
+
+    return(( *str != NULL ) ? DC_STATUS_OK : DC_STATUS_FAIL );
+}
+
+    static inline int
+_dc_auth_result_set_status( dc_auth_result_t *aresult, void *value )
+{
+    return( _dc_auth_result_set_string_value( &aresult->status, value ));
+}
+
+    static inline int
+_dc_auth_result_set_status_msg( dc_auth_result_t *aresult, void *value )
+{
+    return( _dc_auth_result_set_string_value( &aresult->status_msg, value ));
+}
+
+    static inline int
+_dc_auth_result_set_txid( dc_auth_result_t *aresult, void *value )
+{
+    return( _dc_auth_result_set_string_value( &aresult->txid, value ));
+}
+
     int
 dc_auth( dc_cfg_entry_t *cfg, dc_auth_t *auth, dc_auth_result_t *auth_result )
 {
-    return( DC_STATUS_FAIL );
+    dc_param_t		*params = NULL;
+    dc_response_t	resp;
+    dc_status_t		status = DC_STATUS_FAIL;
+    dc_json_t		*jsn;
+    dc_json_t		*j_val;
+    const char		*j_key;
+    void		*iter;
+    int			i;
+    struct {
+	const char	*key;
+	int		(*set_val_fn)( dc_auth_result_t *, void * );
+    } authres_fn_tab[] = {
+	{ DC_AUTH_RESULT_KEY, _dc_auth_result_set_result },
+	{ DC_AUTH_STATUS_KEY, _dc_auth_result_set_status },
+	{ DC_AUTH_STATUS_MSG_KEY, _dc_auth_result_set_status_msg },
+	{ DC_AUTH_TXID_KEY, _dc_auth_result_set_txid },
+	{ NULL, NULL },
+    };
+
+    assert( auth != NULL );
+    assert( auth_result != NULL );
+
+    memset( &resp, 0, sizeof( dc_response_t ));
+    memset( auth_result, 0, sizeof( dc_auth_result_t ));
+
+    auth_result->async = auth->async;
+
+    DC_PARAMS_ADD( &params, USERNAME, auth->user );
+    DC_PARAMS_ADD( &params, FACTOR, auth->factor );
+    if ( strcmp( auth->factor, "passcode" ) == 0 ) {
+	DC_PARAMS_ADD( &params, PASSCODE, auth->data );
+    } else if ( strcmp( auth->factor, "phone" ) == 0 ) {
+	DC_PARAMS_ADD( &params, DEVICE, auth->data );
+    } else if ( strcmp( auth->factor, "push" ) == 0 ) {
+	DC_PARAMS_ADD( &params, DEVICE, auth->data );
+    }
+
+    if ( dc_api_request_dispatch( DC_AUTH_URL_REF_ID, params,
+		cfg, &resp ) != DC_STATUS_OK ) {
+	goto done;
+    }
+
+    if ( resp.type != DC_RESPONSE_TYPE_OBJECT ) {
+	fprintf( stderr, "dc_auth: invalid response type\n" );
+	goto done;
+    }
+
+    jsn = (dc_json_t *)resp.response_object;
+    for ( iter = json_object_iter( jsn ); iter != NULL;
+		iter = json_object_iter_next( jsn, iter )) {
+	j_key = json_object_iter_key( iter );
+	for ( i = 0; authres_fn_tab[ i ].key != NULL; i++ ) {
+	    if ( strcmp( j_key, authres_fn_tab[ i ].key ) == 0 ) {
+		j_val = json_object_iter_value( iter );
+		if ( authres_fn_tab[ i ].set_val_fn( auth_result,
+			j_val ) != DC_STATUS_OK ) {
+		    fprintf( stderr, "dc_auth: failed to set value for "
+				"response key \"%s\"", j_key );
+		}
+	    }
+	}
+    }
+
+    if ( auth_result->async ) {
+	status = DC_STATUS_AUTH_PENDING;
+    } else {
+	status = auth_result->result;
+    }
+
+done:
+    dc_param_list_free( &params );
+
+    return( status );
 }
 
     int
