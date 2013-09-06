@@ -4,6 +4,7 @@
  */
 
 #include <sys/types.h>
+#include <assert.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -75,8 +76,15 @@ dc_read_input_line( void )
     return( line );
 }
 
+enum {
+    DC_EXEC_MODE_DEFAULT = 0,
+    DC_EXEC_MODE_USERFACTOR = (1 << 0),
+};
+#define DC_EXEC_MODE_PREAUTH_DEFAULT \
+	(DC_EXEC_MODE_DEFAULT | DC_EXEC_MODE_USERFACTOR)
+
     static int
-dc_exec_ping( dc_cfg_entry_t *cfg )
+dc_exec_ping( int argc, char **argv, dc_cfg_entry_t *cfg, int flags )
 {
     time_t		tstamp;
 
@@ -91,7 +99,7 @@ dc_exec_ping( dc_cfg_entry_t *cfg )
 }
 
     static int
-dc_exec_check( dc_cfg_entry_t *cfg )
+dc_exec_check( int argc, char **argv, dc_cfg_entry_t *cfg, int flags )
 {
     time_t		tstamp;
 
@@ -106,7 +114,7 @@ dc_exec_check( dc_cfg_entry_t *cfg )
 }
 
     static int
-dc_exec_preauth( dc_cfg_entry_t *cfg )
+dc_exec_preauth( int argc, char **argv, dc_cfg_entry_t *cfg, int flags )
 {
     dc_preauth_result_t	presult;
     char		*user;
@@ -114,7 +122,10 @@ dc_exec_preauth( dc_cfg_entry_t *cfg )
     char		*device_json;
     int			rc = 0;
 
-    user = dc_read_input_line();
+    assert( argc >= 1 );
+    assert( argv != NULL );
+
+    user = argv[ 0 ];
 
     switch ( dc_preauth( cfg, user, &presult )) {
     case DC_STATUS_AUTH_REQUIRED:
@@ -134,8 +145,10 @@ dc_exec_preauth( dc_cfg_entry_t *cfg )
 	free( device_json );
 
 	/* if we're running as userfactor check, indicate factor's required */
-	factor_name = DC_CFG_FACTOR_NAME( cfg );
-	printf( "%s\n", factor_name ? factor_name : _DC_FACTOR_NAME );
+	if (( flags & DC_EXEC_MODE_USERFACTOR )) {
+	    factor_name = DC_CFG_FACTOR_NAME( cfg );
+	    printf( "%s\n", factor_name ? factor_name : _DC_FACTOR_NAME );
+	}
 	break;
 
     case DC_STATUS_USER_ALLOWED:
@@ -160,15 +173,69 @@ dc_exec_preauth( dc_cfg_entry_t *cfg )
 	break;
     }
 
-    free( user );
-
     return( rc );
 }
 
     int
-dc_exec_auth( dc_cfg_entry_t *cfg )
+dc_exec_auth( int argc, char **argv, dc_cfg_entry_t *cfg, int flags )
 {
-    return( DC_STATUS_OK );
+    dc_auth_t		auth;
+    dc_auth_result_t	aresult;
+    char		*factor_name;
+    int			rc = 0;
+
+    memset( &auth, 0, sizeof( dc_auth_t ));
+    auth.user = dc_read_input_line();
+    auth.factor = dc_read_input_line();
+    auth.data = dc_read_input_line();
+
+    switch ( dc_auth( cfg, &auth, &aresult )) {
+    case DC_STATUS_USER_ALLOWED:
+	factor_name = DC_CFG_FACTOR_NAME( cfg );
+	printf( "%s\n", factor_name ? factor_name : _DC_FACTOR_NAME );
+	break;
+
+    case DC_STATUS_AUTH_PENDING:
+	/* async auth, ensure we exit non-zero so the cgi loads the template */
+	rc = 1;
+
+	if ( aresult.txid == NULL ) {
+	    fprintf( stderr, "%s: ERROR: pending authentication for user %s, "
+			"but no txid returned by auth request\n",
+			xname, auth.user );
+	    printf( "Authentication failed\n" );
+	    break;
+	}
+
+	printf( "$duo_auth_type=%s\n", auth.factor );
+	printf( "$duo_txid=%s\n", aresult.txid );
+	printf( "Authentication pending\n" );
+	break;
+
+    default:
+	printf( "Authentication failed\n" );
+	rc = 1;
+
+	fprintf( stderr, "%s: %s authentication failed for user %s: %s (%s)\n",
+		xname, auth.factor, auth.user, aresult.status_msg,
+		aresult.status );
+
+	/*
+	 * authentication failed in some way. run preauth again to
+	 * re-populate device list, but make sure we don't run it
+	 * as a userfactor, since that will emit the factor name,
+	 * which the cgi will take as a successful authentication.
+	 */
+	dc_exec_preauth( 1, (char **)&auth.user, cfg, DC_EXEC_MODE_DEFAULT );
+
+	break;
+    }
+
+    free( auth.user );
+    free( auth.factor );
+    free( auth.data );
+
+    return( rc );
 }
 
     int
@@ -186,16 +253,21 @@ main( int ac, char *av[] )
     int			i;
     struct {
 	const char	*exec_name;
-	int		(*exec_fn)( dc_cfg_entry_t * );
+	int		(*exec_fn)( int, char **, dc_cfg_entry_t *, int );
+	int		exec_flags;
     } exec_name_tab[] = {
-	{ DC_EXEC_NAME_AUTH, dc_exec_auth },
-	{ DC_EXEC_NAME_CHECK, dc_exec_check },
-	{ DC_EXEC_NAME_PING, dc_exec_ping },
-	{ DC_EXEC_NAME_PREAUTH, dc_exec_preauth },
+	{ DC_EXEC_NAME_AUTH, dc_exec_auth, DC_EXEC_MODE_DEFAULT },
+	{ DC_EXEC_NAME_CHECK, dc_exec_check, DC_EXEC_MODE_DEFAULT },
+	{ DC_EXEC_NAME_PING, dc_exec_ping, DC_EXEC_MODE_DEFAULT },
+	{ DC_EXEC_NAME_PREAUTH, dc_exec_preauth, DC_EXEC_MODE_PREAUTH_DEFAULT },
 	{ NULL, NULL },
     };
 
     xname = dc_get_exec_name( av[ 0 ] );
+
+    /* advance past exec name so exec functions receive only arguments */
+    ac--;
+    av++;
 
     cfg_path = dc_get_cfg_path();
     status = dc_cfg_read( cfg_path, &cfg_list );
@@ -219,7 +291,8 @@ main( int ac, char *av[] )
 	exit( 1 );
     }
 
-    rc = exec_name_tab[ i ].exec_fn( cfg_list );
+    rc = exec_name_tab[ i ].exec_fn( ac, av, cfg_list,
+					exec_name_tab[ i ].exec_flags );
     
 #ifdef notdef
     if ( strcmp( xname, "duo_cosign_preauth" ) == 0 ) {
