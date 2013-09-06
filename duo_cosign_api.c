@@ -764,7 +764,7 @@ _dc_ping_check_internal( dc_cfg_entry_t *cfg, dc_url_ref_id_t ref_id,
     dc_response_t	resp;
     dc_json_t		*jsn;
 
-    if ( dc_api_request_dispatch( ref_id, NULL, cfg, &resp ) < 0 ) {
+    if ( dc_api_request_dispatch( ref_id, NULL, cfg, &resp ) != DC_STATUS_OK ) {
 	return( DC_STATUS_FAIL );
     }
     
@@ -935,7 +935,7 @@ dc_preauth( dc_cfg_entry_t *cfg, char *user, dc_preauth_result_t *presult )
 
     DC_PARAMS_ADD( &params, USERNAME, user );
     if ( dc_api_request_dispatch( DC_PREAUTH_URL_REF_ID, params,
-		cfg, &resp ) < 0 ) {
+		cfg, &resp ) != DC_STATUS_OK ) {
 	fprintf( stderr, "preauth request failed\n" );
 	goto done;
     }
