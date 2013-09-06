@@ -294,30 +294,6 @@ main( int ac, char *av[] )
     rc = exec_name_tab[ i ].exec_fn( ac, av, cfg_list,
 					exec_name_tab[ i ].exec_flags );
     
-#ifdef notdef
-    if ( strcmp( xname, "duo_cosign_preauth" ) == 0 ) {
-	dc_exec_preauth( cfg_list );
-    } else if ( strcmp( xname, "duo_cosign" ) == 0 ) {
-	user = dc_read_input_line();
-	auth_type = dc_read_input_line();
-	auth_data = dc_read_input_line();
-
-	DC_PARAMS_ADD( &params, USERNAME, user );
-	DC_PARAMS_ADD( &params, FACTOR, auth_type );
-	if ( strcmp( auth_type, "passcode" ) == 0 ) {
-	    DC_PARAMS_ADD( &params, PASSCODE, auth_data );
-	} else if ( strcmp( auth_type, "phone" ) == 0 ) {
-	    DC_PARAMS_ADD( &params, DEVICE, auth_data );
-	} else if ( strcmp( auth_type, "push" ) == 0 ) {
-	    DC_PARAMS_ADD( &params, DEVICE, auth_data );
-	}
-	dc_api_request_dispatch( DC_AUTH_URL_REF_ID, params,
-		cfg_list, &resp );
-	dc_param_list_free( &params );
-
-    }
-#endif /* notdef */
-
     curl_global_cleanup();
 
     return( rc );
