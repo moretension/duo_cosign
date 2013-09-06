@@ -193,6 +193,11 @@ dc_exec_auth( int argc, char **argv, dc_cfg_entry_t *cfg, int flags )
     case DC_STATUS_USER_ALLOWED:
 	factor_name = DC_CFG_FACTOR_NAME( cfg );
 	printf( "%s\n", factor_name ? factor_name : _DC_FACTOR_NAME );
+
+	fprintf( stderr, "%s: user %s authenticated %s with %s\n",
+		xname, auth.user, factor_name ? factor_name : _DC_FACTOR_NAME,
+		auth.factor );
+		
 	break;
 
     case DC_STATUS_AUTH_PENDING:
