@@ -799,6 +799,12 @@ dc_check( dc_cfg_entry_t *cfg, time_t *tstamp )
     return( _dc_ping_check_internal( cfg, DC_CHECK_URL_REF_ID, tstamp ));
 }
 
+    static char *
+_dc_get_ipaddr( void )
+{
+    return( getenv( "REMOTE_ADDR" ));
+}
+
     static int
 _dc_preauth_set_devices( dc_preauth_result_t *presult, void *devs )
 {
@@ -915,6 +921,7 @@ dc_preauth( dc_cfg_entry_t *cfg, char *user, dc_preauth_result_t *presult )
     void		*j_iter;
     dc_json_t		*j_val;
     const char		*j_key;
+    char		*ipaddr = NULL;
     int			i;
     struct {
 	const char	*key;
@@ -934,6 +941,11 @@ dc_preauth( dc_cfg_entry_t *cfg, char *user, dc_preauth_result_t *presult )
     memset( presult, 0, sizeof( dc_preauth_result_t ));
 
     DC_PARAMS_ADD( &params, USERNAME, user );
+    ipaddr = _dc_get_ipaddr();
+    if ( ipaddr != NULL ) {
+	DC_PARAMS_ADD( &params, IPADDR, ipaddr );
+    }
+
     if ( dc_api_request_dispatch( DC_PREAUTH_URL_REF_ID, params,
 		cfg, &resp ) != DC_STATUS_OK ) {
 	fprintf( stderr, "preauth request failed\n" );
@@ -1044,6 +1056,7 @@ dc_auth( dc_cfg_entry_t *cfg, dc_auth_t *auth, dc_auth_result_t *auth_result )
     dc_json_t		*jsn;
     dc_json_t		*j_val;
     const char		*j_key;
+    char		*ipaddr = NULL;
     void		*iter;
     int			i;
     struct {
@@ -1073,6 +1086,11 @@ dc_auth( dc_cfg_entry_t *cfg, dc_auth_t *auth, dc_auth_result_t *auth_result )
 	DC_PARAMS_ADD( &params, DEVICE, auth->data );
     } else if ( strcmp( auth->factor, "push" ) == 0 ) {
 	DC_PARAMS_ADD( &params, DEVICE, auth->data );
+    }
+
+    ipaddr = _dc_get_ipaddr();
+    if ( ipaddr != NULL ) {
+	DC_PARAMS_ADD( &params, IPADDR, ipaddr );
     }
 
     if ( dc_api_request_dispatch( DC_AUTH_URL_REF_ID, params,
