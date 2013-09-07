@@ -260,7 +260,7 @@ dc_api_hmac_for_request( duo_cosign_api_t *req, dc_cfg_entry_t *cfg,
     /* ensure we have enough space for the hexchars + LF + nul */ 
     assert( maxhexlen >= ((EVP_MAX_MD_SIZE * 2) + 2 ));
     
-    key = DC_CFG_API_SKEY( cfg );
+    key = DC_CFG_VALUE( cfg, API_SKEY );
     assert( key != NULL );
 
     HMAC_CTX_init( &ctx );
@@ -380,7 +380,7 @@ dc_api_request_dispatch( dc_url_ref_id_t req_id, dc_param_t *req_params,
 	goto done;
     }
 
-    if ( dc_api_set_hostname( DC_CFG_API_HOST( cfg )) == NULL ) {
+    if ( dc_api_set_hostname( DC_CFG_VALUE( cfg, API_HOST )) == NULL ) {
 	fprintf( stderr, "failed to set API hostname\n" );
 	goto done;
     }
@@ -419,7 +419,7 @@ dc_api_request_dispatch( dc_url_ref_id_t req_id, dc_param_t *req_params,
     }
     DC_CURL_SET_HEADERS( headers );
 
-    DC_CURL_SET_USERNAME( DC_CFG_API_IKEY( cfg ));
+    DC_CURL_SET_USERNAME( DC_CFG_VALUE( cfg, API_IKEY ));
     DC_CURL_SET_PASSWORD( hmac_hex );
 
     if ( strcmp( dc_api[ req_id ].method, DC_API_POST ) == 0 ) {
@@ -1057,6 +1057,7 @@ dc_auth( dc_cfg_entry_t *cfg, dc_auth_t *auth, dc_auth_result_t *auth_result )
     dc_json_t		*j_val;
     const char		*j_key;
     char		*ipaddr = NULL;
+    char		*type;
     void		*iter;
     int			i;
     struct {
@@ -1088,6 +1089,11 @@ dc_auth( dc_cfg_entry_t *cfg, dc_auth_t *auth, dc_auth_result_t *auth_result )
 	DC_PARAMS_ADD( &params, DEVICE, auth->data );
     } else if ( strcmp( auth->factor, "push" ) == 0 ) {
 	DC_PARAMS_ADD( &params, DEVICE, auth->data );
+
+	type = DC_CFG_VALUE( cfg, AUTH_REQUEST_PREFIX );
+	if ( type != NULL ) {
+	    DC_PARAMS_ADD( &params, TYPE, type );
+	}
     }
 
     ipaddr = _dc_get_ipaddr();

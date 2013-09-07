@@ -146,7 +146,7 @@ dc_exec_preauth( int argc, char **argv, dc_cfg_entry_t *cfg, int flags )
 
 	/* if we're running as userfactor check, indicate factor's required */
 	if (( flags & DC_EXEC_MODE_USERFACTOR )) {
-	    factor_name = DC_CFG_FACTOR_NAME( cfg );
+	    factor_name = DC_CFG_VALUE( cfg, FACTOR_NAME );
 	    printf( "%s\n", factor_name ? factor_name : _DC_FACTOR_NAME );
 	}
 	break;
@@ -191,7 +191,7 @@ dc_exec_auth( int argc, char **argv, dc_cfg_entry_t *cfg, int flags )
 
     switch ( dc_auth( cfg, &auth, &aresult )) {
     case DC_STATUS_USER_ALLOWED:
-	factor_name = DC_CFG_FACTOR_NAME( cfg );
+	factor_name = DC_CFG_VALUE( cfg, FACTOR_NAME );
 	printf( "%s\n", factor_name ? factor_name : _DC_FACTOR_NAME );
 
 	fprintf( stderr, "%s: user %s authenticated %s with %s\n",

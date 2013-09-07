@@ -11,10 +11,16 @@
 #define DC_CFG_PATH_ENV_NAME	"DUO_COSIGN_CFG"
 #define DC_CFG_PATH_DEFAULT	"./duo_cosign.cfg"
 
-#define DC_CFG_KEY_API_HOST	"host"
-#define DC_CFG_KEY_API_IKEY	"ikey"
-#define DC_CFG_KEY_API_SKEY	"skey"
-#define DC_CFG_KEY_FACTOR_NAME	"factor name"
+#define DC_CFG_KEY_API_HOST		"host"
+#define DC_CFG_KEY_API_IKEY		"ikey"
+#define DC_CFG_KEY_API_SKEY		"skey"
+#define DC_CFG_KEY_FACTOR_NAME		"factor name"
+#define DC_CFG_KEY_AUTH_REQUEST_PREFIX	"request prefix"
+
+#define DC_CFG_VALUE1(c, k) \
+	dc_cfg_value_for_key((c), DC_CFG_KEY_##k)
+#define DC_CFG_VALUE(c, k) \
+	DC_CFG_VALUE1((c), k)
 
 #define DC_CFG_API_HOST(c) \
 	dc_cfg_value_for_key((c), DC_CFG_KEY_API_HOST )
