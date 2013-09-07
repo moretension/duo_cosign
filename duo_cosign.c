@@ -182,6 +182,7 @@ dc_exec_auth( int argc, char **argv, dc_cfg_entry_t *cfg, int flags )
     dc_auth_t		auth;
     dc_auth_result_t	aresult;
     char		*factor_name;
+    char		*show_errs;
     int			rc = 0;
 
     memset( &auth, 0, sizeof( dc_auth_t ));
@@ -218,7 +219,14 @@ dc_exec_auth( int argc, char **argv, dc_cfg_entry_t *cfg, int flags )
 	break;
 
     default:
-	printf( "Authentication failed\n" );
+	printf( "Authentication failed" );
+
+	show_errs = DC_CFG_VALUE( cfg, DISPLAY_ERROR_MSG );
+	if ( show_errs && strcmp( show_errs, "yes" ) == 0 ) {
+	    printf( ": %s", aresult.status_msg );
+	}
+	putchar( '\n' );
+
 	rc = 1;
 
 	fprintf( stderr, "%s: %s authentication failed for user %s: %s (%s)\n",
