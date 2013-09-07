@@ -1084,6 +1084,8 @@ dc_auth( dc_cfg_entry_t *cfg, dc_auth_t *auth, dc_auth_result_t *auth_result )
 	DC_PARAMS_ADD( &params, PASSCODE, auth->data );
     } else if ( strcmp( auth->factor, "phone" ) == 0 ) {
 	DC_PARAMS_ADD( &params, DEVICE, auth->data );
+    } else if ( strcmp( auth->factor, "sms" ) == 0 ) {
+	DC_PARAMS_ADD( &params, DEVICE, auth->data );
     } else if ( strcmp( auth->factor, "push" ) == 0 ) {
 	DC_PARAMS_ADD( &params, DEVICE, auth->data );
     }
