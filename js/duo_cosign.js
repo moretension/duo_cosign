@@ -57,6 +57,7 @@ function duoDeviceListCapabilities( dev, dev_elem_ids ) {
 	    document.getElementById( dev_elem_ids['passcode'] ).value = null;
 	};
 	if ( !selected ) {
+	    document.loginform.duo_device.value = dev.device;
 	    selected = radio.checked = true;
 	}
 
