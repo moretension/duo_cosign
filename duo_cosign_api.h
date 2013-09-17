@@ -56,6 +56,7 @@ typedef enum {
 #define DC_STATUS_OK_STR		"OK"
 #define DC_STATUS_FAIL_STR		"FAIL"
 #define DC_STATUS_AUTH_REQUIRED_STR	"auth"
+#define DC_STATUS_AUTH_PENDING_STR	"waiting"
 #define DC_STATUS_USER_ALLOWED_STR	"allow"
 #define DC_STATUS_USER_DENIED_STR	"deny"
 #define DC_STATUS_USER_NOT_ENROLLED_STR	"enroll"
@@ -160,6 +161,11 @@ struct dc_auth {
 };
 typedef struct dc_auth		dc_auth_t;
 
+#define DC_AUTH_PUSH_DEVICE_KEY		"device"
+#define DC_AUTH_PUSH_TYPE_KEY		"type"
+#define DC_AUTH_PUSH_DISPLAY_USERNAME_KEY	"display_username"
+#define DC_AUTH_PUSH_PUSHINFO_KEY	"pushinfo"
+
 struct dc_auth_result {
     int				async;
     dc_status_t			result;
@@ -213,6 +219,7 @@ void	dc_param_list_free( dc_param_t ** );
 #define DC_PARAM_KEY_IPADDR		"ipaddr"
 #define DC_PARAM_KEY_PASSCODE		"passcode"
 #define DC_PARAM_KEY_PUSHINFO		"pushinfo"
+#define DC_PARAM_KEY_TXID		"txid"
 #define DC_PARAM_KEY_TYPE		"type"
 #define DC_PARAM_KEY_USERNAME		"username"
 #define DC_PARAM_KEY_USERID		"user_id"
@@ -240,7 +247,7 @@ char	*dc_api_set_hostname( char * );
 int	dc_api_get_formatted_date( char *, int, int );
 int	dc_api_hmac_for_request( duo_cosign_api_t *, dc_cfg_entry_t *,
 				char *, char *, int );
-char	*dc_api_url_for_request( duo_cosign_api_t *req );
+char	*dc_api_url_for_request( duo_cosign_api_t *req, char * );
 int	dc_api_request_dispatch( dc_url_ref_id_t, dc_param_t *,
 				dc_cfg_entry_t *, dc_response_t * );
 
@@ -250,6 +257,6 @@ int	dc_check( dc_cfg_entry_t *, time_t * );
 int	dc_preauth( dc_cfg_entry_t *, char *, dc_preauth_result_t * );
 void	dc_preauth_result_clear( dc_preauth_result_t * );
 int	dc_auth( dc_cfg_entry_t *, dc_auth_t *, dc_auth_result_t * );
-int	dc_auth_status( dc_cfg_entry_t *, char * );
+int	dc_auth_status( dc_cfg_entry_t *, char *, char *, dc_auth_result_t * );
 
 #endif /* DUO_COSIGN_API_H */

@@ -309,18 +309,23 @@ dc_api_hmac_for_request( duo_cosign_api_t *req, dc_cfg_entry_t *cfg,
 #define DC_URL_SCHEME		"https://"
 #define DC_URL_SCHEME_LEN	strlen( DC_URL_SCHEME )
     char *
-dc_api_url_for_request( duo_cosign_api_t *req )
+dc_api_url_for_request( duo_cosign_api_t *req, char *query )
 {
     char		*api_url;
     int			len;
+    int			qlen = 0;
 
     assert( dc_api_hostname != NULL );
     assert( req != NULL );
 
     len = DC_URL_SCHEME_LEN + strlen( dc_api_hostname ) +
 		strlen( req->url_ref ) + 1;
+    if ( strcmp( req->method, DC_API_GET ) == 0 && query != NULL ) {
+	/* +1 for the '?' prefixing the query string */
+	qlen = 1 + strlen( query );
+    }
 
-    api_url = (char *)malloc( len );
+    api_url = (char *)malloc( len + qlen );
     if ( api_url != NULL ) {
 	memcpy( api_url, DC_URL_SCHEME, DC_URL_SCHEME_LEN );
 	len = DC_URL_SCHEME_LEN;
@@ -330,6 +335,14 @@ dc_api_url_for_request( duo_cosign_api_t *req )
 
 	memcpy( api_url + len, req->url_ref, strlen( req->url_ref ));
 	len += strlen( req->url_ref );
+
+	if ( qlen ) {
+	    memcpy( api_url + len, "?", 1 );
+	    len += 1;
+
+	    memcpy( api_url + len, query, strlen( query ));
+	    len += strlen( query );
+	}
 
 	api_url[ len ] = '\0';
     }
@@ -399,7 +412,7 @@ dc_api_request_dispatch( dc_url_ref_id_t req_id, dc_param_t *req_params,
 	goto done;
     }
 
-    api_url = dc_api_url_for_request( &dc_api[ req_id ] );
+    api_url = dc_api_url_for_request( &dc_api[ req_id ], params );
     if ( api_url == NULL ) {
 	fprintf( stderr, "failed to create URL for API request: %s\n",
 		strerror( errno ));
@@ -1009,6 +1022,8 @@ _dc_auth_result_set_result( dc_auth_result_t *aresult, void *value )
     
     if ( strcmp( result, DC_STATUS_USER_ALLOWED_STR ) == 0 ) {
 	aresult->result = DC_STATUS_USER_ALLOWED;
+    } else if ( strcmp( result, DC_STATUS_AUTH_PENDING_STR ) == 0 ) {
+	aresult->result = DC_STATUS_AUTH_PENDING;
     } else {
 	aresult->result = DC_STATUS_USER_DENIED;
     }
@@ -1089,10 +1104,15 @@ dc_auth( dc_cfg_entry_t *cfg, dc_auth_t *auth, dc_auth_result_t *auth_result )
     } else if ( strcmp( auth->factor, "push" ) == 0 ) {
 	DC_PARAMS_ADD( &params, DEVICE, auth->data );
 
+	if ( auth->async ) {
+	    DC_PARAMS_ADD( &params, ASYNC, "1" );
+	}
+
 	type = DC_CFG_VALUE( cfg, AUTH_REQUEST_PREFIX );
 	if ( type != NULL ) {
 	    DC_PARAMS_ADD( &params, TYPE, type );
 	}
+
     }
 
     ipaddr = _dc_get_ipaddr();
@@ -1139,7 +1159,68 @@ done:
 }
 
     int
-dc_auth_status( dc_cfg_entry_t *cfg, char *auth_id )
+dc_auth_status( dc_cfg_entry_t *cfg, char *user, char *auth_id,
+	dc_auth_result_t *aresult )
 {
-    return( DC_STATUS_FAIL );
+    dc_param_t		*params = NULL;
+    dc_response_t	resp;
+    dc_status_t		status = DC_STATUS_FAIL;
+    dc_json_t		*jsn;
+    dc_json_t		*j_val;
+    const char		*j_key;
+    void		*iter;
+    int			i;
+    struct {
+	const char	*key;
+	int		(*set_val_fn)( dc_auth_result_t *, void * );
+    } authres_fn_tab[] = {
+	{ DC_AUTH_RESULT_KEY, _dc_auth_result_set_result },
+	{ DC_AUTH_STATUS_KEY, _dc_auth_result_set_status },
+	{ DC_AUTH_STATUS_MSG_KEY, _dc_auth_result_set_status_msg },
+	{ NULL, NULL },
+    };
+
+    assert( auth_id != NULL );
+    assert( aresult != NULL );
+
+    memset( aresult, 0, sizeof( dc_auth_result_t ));
+
+    DC_PARAMS_ADD( &params, TXID, auth_id );
+
+    if ( dc_api_request_dispatch( DC_AUTH_STATUS_URL_REF_ID, params,
+		cfg, &resp ) != DC_STATUS_OK ) {
+	goto done;
+    }
+
+    /*
+     * XXX following is almost entirely a duplicate of dc_auth.
+     * reduce to a shared function when time available.
+     */
+    if ( resp.type != DC_RESPONSE_TYPE_OBJECT ) {
+	fprintf( stderr, "dc_auth: invalid response type\n" );
+	goto done;
+    }
+
+    jsn = (dc_json_t *)resp.response_object;
+    for ( iter = json_object_iter( jsn ); iter != NULL;
+		iter = json_object_iter_next( jsn, iter )) {
+	j_key = json_object_iter_key( iter );
+	for ( i = 0; authres_fn_tab[ i ].key != NULL; i++ ) {
+	    if ( strcmp( j_key, authres_fn_tab[ i ].key ) == 0 ) {
+		j_val = json_object_iter_value( iter );
+		if ( authres_fn_tab[ i ].set_val_fn( aresult,
+			j_val ) != DC_STATUS_OK ) {
+		    fprintf( stderr, "dc_auth: failed to set value for "
+				"response key \"%s\"", j_key );
+		}
+	    }
+	}
+    }
+
+    status = aresult->result;
+
+done:
+    dc_param_list_free( &params );
+
+    return( status );
 }

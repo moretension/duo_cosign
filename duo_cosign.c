@@ -255,6 +255,62 @@ dc_exec_auth( int argc, char **argv, dc_cfg_entry_t *cfg, int flags )
 }
 
     int
+dc_exec_auth_status( int argc, char **argv, dc_cfg_entry_t *cfg, int flags )
+{
+    dc_auth_result_t	aresult;
+    char		*txid = NULL;
+    char		*factor_name;
+    char		*show_errs;
+    char		*user = getenv( "REMOTE_USER" );
+    int			rc = 0;
+
+    assert( user != NULL );
+
+    txid = dc_read_input_line();
+
+    /* XXX again a bunch of duplicated code from exec_auth... */
+    switch ( dc_auth_status( cfg, user, txid, &aresult )) {
+    case DC_STATUS_USER_ALLOWED:
+	factor_name = DC_CFG_VALUE( cfg, FACTOR_NAME );
+	printf( "%s\n", factor_name ? factor_name : _DC_FACTOR_NAME );
+
+	fprintf( stderr, "%s: user %s authenticated %s\n",
+		xname, user, factor_name ? factor_name : _DC_FACTOR_NAME );
+
+	break;
+
+    case DC_STATUS_AUTH_PENDING:
+	rc = 1;
+
+	printf( "$duo_txid=%s\n", txid );
+	if ( aresult.status_msg != NULL ) {
+	    printf( "%s\n", aresult.status_msg );
+	} else {
+	    printf( "Authentication pending\n" );
+	}
+
+	break;
+
+    default:
+	printf( "Authentication failed" );
+
+	show_errs = DC_CFG_VALUE( cfg, DISPLAY_ERROR_MSG );
+	if ( show_errs && strcmp( show_errs, "yes" ) == 0 ) {
+	    printf( ": %s", aresult.status_msg );
+	}
+	putchar( '\n' );
+
+	rc = 1;
+
+	dc_exec_preauth( 1, (char **)&user, cfg, DC_EXEC_MODE_DEFAULT );
+    }
+
+    free( txid );
+
+    return( rc );
+}
+
+    int
 main( int ac, char *av[] )
 {
     dc_cfg_entry_t	*cfg_list = NULL;
@@ -273,6 +329,7 @@ main( int ac, char *av[] )
 	int		exec_flags;
     } exec_name_tab[] = {
 	{ DC_EXEC_NAME_AUTH, dc_exec_auth, DC_EXEC_MODE_DEFAULT },
+	{ DC_EXEC_NAME_AUTH_STAT, dc_exec_auth_status, DC_EXEC_MODE_DEFAULT },
 	{ DC_EXEC_NAME_CHECK, dc_exec_check, DC_EXEC_MODE_DEFAULT },
 	{ DC_EXEC_NAME_PING, dc_exec_ping, DC_EXEC_MODE_DEFAULT },
 	{ DC_EXEC_NAME_PREAUTH, dc_exec_preauth, DC_EXEC_MODE_PREAUTH_DEFAULT },

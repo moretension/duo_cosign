@@ -17,6 +17,8 @@
 #define DC_CFG_KEY_FACTOR_NAME		"factor name"
 #define DC_CFG_KEY_AUTH_REQUEST_PREFIX	"request prefix"
 #define DC_CFG_KEY_DISPLAY_ERROR_MSG	"show errors"
+#define DC_CFG_KEY_AUTH_PUSHINFO_SOURCE	"push source name"
+#define DC_CFG_KEY_AUTH_PUSHINFO_DOMAIN	"push domain name"
 
 #define DC_CFG_VALUE1(c, k) \
 	dc_cfg_value_for_key((c), DC_CFG_KEY_##k)
