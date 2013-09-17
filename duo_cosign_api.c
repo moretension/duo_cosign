@@ -651,7 +651,8 @@ dc_device_list_json_serialize( dc_device_t *devs )
 
 	j_dev = json_pack( "{ssssss}",
 		    DC_DEVICE_ID_KEY, cur->id,
-		    DC_DEVICE_DISPLAY_NAME_KEY, cur->display_name,
+		    DC_DEVICE_DISPLAY_NAME_KEY,
+			cur->display_name ? cur->display_name : cur->name,
 		    DC_DEVICE_TYPE_KEY, _dc_device_type_to_string( cur->type ));
 	if ( j_dev == NULL ) {
 	    goto done;
