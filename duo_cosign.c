@@ -133,16 +133,19 @@ dc_exec_preauth( int argc, char **argv, dc_cfg_entry_t *cfg, int flags )
 	if ( device_json == NULL ) {
 	    fprintf( stderr, "%s: failed to JSON serialize device list\n",
 			xname );
-	    printf( "Access denied\n" );
+	    /*
+	     * report error status, and ALWAYS indicate the factor's required.
+	     * this will effectively lock the user out until the admins fix
+	     * whatever's wrong, but that's better than the alternative.
+	     */
 	    rc = 1;
-	    break;
+	} else {
+	    /* emit device list as a variable */
+	    printf( "$duo_devices_json=%s\n", device_json );
+
+	    /* json_dumps returns a malloc'd string */
+	    free( device_json );
 	}
-
-	/* emit device list as a variable */
-	printf( "$duo_devices_json=%s\n", device_json );
-
-	/* json_dumps returns a malloc'd string */
-	free( device_json );
 
 	/* if we're running as userfactor check, indicate factor's required */
 	if (( flags & DC_EXEC_MODE_USERFACTOR )) {
