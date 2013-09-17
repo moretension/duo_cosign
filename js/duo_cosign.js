@@ -37,19 +37,31 @@ function createPasswordInput( name, value, id ) {
 }
 
 function duoDeviceListCapabilities( dev, dev_elem_ids ) {
-    var	para, radio, label, passcodeInput;
+    var	capaDiv, para, radio, label, passcodeInput;
     var i, len;
     var	selected = false;
-    var capa = dev.capabilities;
+    var capa = [];
     var capaText = {"push": "Push to Duo Mobile app",
 			"phone": "Call my phone",
 			"sms": "Text me passcodes",
 			"passcode": "Passcode:"};
 
-    console.log( 'ADMORTEN DEBUG: capabilities: ' + dev.capabilities );
+    console.log( 'DEBUG: capabilities: ' + dev.capabilities );
 
-    capa.push( 'passcode' );
+    capaDiv = document.createElement( 'div' );
+    capaDiv.setAttribute( 'id', dev_elem_ids['capabilityList'] + 'Options' );
+
+    capa = capa.concat( dev.capabilities );
+    if ( !( capa.length == 1 && capa[ 0 ] == "phone" )) {
+	// only include passcode for smartphones (OATH, SMS),
+	// tablets/iPod touches (OATH), and mobile phones (SMS)
+	if ( capa.slice( -1 ) != "passcode" ) {
+	    capa.push( 'passcode' );
+	}
+    }
     for ( i = 0; i < capa.length; i++ ) {
+	console.log( 'DEBUG: capability: ' + capa[ i ] );
+
 	radio = createRadioButton( 'duo_factor', capa[ i ],
 				    'duoFactor' + (i + 1), false );
 	radio.onclick = function() {
@@ -88,10 +100,38 @@ function duoDeviceListCapabilities( dev, dev_elem_ids ) {
 	    para.appendChild( passcodeInput );
 	}
 
-	document.getElementById( dev_elem_ids['capabilityList'] ).appendChild( para );
+	capaDiv.appendChild( para );
     }
 
     if ( i == 0 ) {
 	throw( "No Duo authentication capabilities found for device!" );
     }
+
+    return( capaDiv );
+}
+
+function duoDeviceCreateSelectElement( devices ) {
+    var	displayNames = [];
+    var selAttr = {"name": "devices", "id": "duoDeviceSelect"};
+    var selected = 0;
+    var sel = null;
+    var opt = null;
+
+    sel = document.createElement( 'select' );
+    for ( var k in selAttr ) {
+	sel.setAttribute( k, selAttr[k] );
+    }
+
+    for ( var i = 0; i < devices.length; i++ ) {
+	opt = document.createElement( 'option' );
+	opt.innerHTML = devices[ i ]['display_name'];
+
+	if ( !selected ) {
+	    opt.selected = selected = 1;
+	}
+
+	sel.appendChild( opt );
+    }
+
+    return( sel );
 }
