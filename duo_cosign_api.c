@@ -261,15 +261,15 @@ dc_api_hmac_for_request( duo_cosign_api_t *req, dc_cfg_entry_t *cfg,
     key = DC_CFG_VALUE( cfg, API_SKEY );
     assert( key != NULL );
 
-    HMAC_CTX_init( &ctx );
-    HMAC_Init( &ctx, (const void *)key, strlen( key ), evp_md );
-
     len = dc_api_get_formatted_date( date, sizeof( date ),
 					DC_API_DATE_FORMAT_DEFAULT );
     if ( !len ) {
 	fprintf( stderr, "duo_cosign: date buffer too small\n" );
 	return( 0 );
     }
+
+    HMAC_CTX_init( &ctx );
+    HMAC_Init( &ctx, (const void *)key, strlen( key ), evp_md );
 
     HMAC_Update( &ctx, (const unsigned char *)date, strlen( date ));
     HMAC_Update( &ctx, (const unsigned char *)&lf, 1 );
