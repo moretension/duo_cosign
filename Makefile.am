@@ -1,6 +1,5 @@
 AUTOMAKE_OPTIONS = foreign
 
-CC = clang
 CFLAGS = -Wall
 LDFLAGS = 
 
