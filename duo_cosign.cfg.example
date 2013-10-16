@@ -1,0 +1,25 @@
+# API hostname for your Auth API integration
+host = api-xxxxxxxx.duosecurity.com
+
+# Duo Integration Key for your Auth API integration
+ikey = SAMPLEINTEGRATIONKEY
+
+# Duo Secret Key for your Auth API integration
+skey = s4Mpl35ecr3tKeyForY0urauthApi1nte6ra7ion
+
+# local name of the cosign factor that duo_cosign provides. this is the value
+# that would be used with CosignRequireFactor on protected services.
+factor name = Duo
+
+# Prefix for push authN display header. the value users will see in the
+# push notification sent to their devices. the Duo app currently puts this
+# value in front of the word "Request", meaning the user reads:
+# 	<request prefix> Request
+#
+request prefix =  Penetrode Login
+
+# Push auth request's domain name 
+push domain name = weblogin.example.edu
+
+# Show user error messages from Duo API server
+show errors = yes
