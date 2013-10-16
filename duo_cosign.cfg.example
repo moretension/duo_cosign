@@ -1,3 +1,14 @@
+#####
+#
+#	duo_cosign.cfg
+#
+#	this file controls basic settings for use of Duo's Auth API.
+#	the duo_cosign executable looks for the path to this file in
+#	the environment variable DUO_COSIGN_CFG, and otherwise looks
+#	in the current working directory for "duo_cosign.cfg"
+#
+#####
+
 # API hostname for your Auth API integration
 host = api-xxxxxxxx.duosecurity.com
 
